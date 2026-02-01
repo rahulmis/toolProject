@@ -23,7 +23,7 @@
 
 import jsonFormatterMeta from './json-formatter/metadata';
 import imageConverterMeta from './image-converter/metadata';
-
+import jsonDiffMeta from './json-diff/metadata';
 /**
  * Tool Categories
  * Organize tools into logical groups for better UX
@@ -60,6 +60,7 @@ export const TOOL_CATEGORIES = {
 export const TOOLS = [
   jsonFormatterMeta,
   imageConverterMeta,
+  jsonDiffMeta,
   
   // Future tools: Just import and add to array
   // import pdfMergerMeta from './pdf-merger/metadata';
