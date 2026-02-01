@@ -17,7 +17,7 @@ const Header = () => {
           <Link to="/" className="flex items-center space-x-2">
             <span className="text-2xl">🛠️</span>
             <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
-              Online<span className="text-primary-600 dark:text-primary-400">Tools</span>
+              JsonAnd<span className="text-primary-600 dark:text-primary-400">More</span>
             </span>
           </Link>
 

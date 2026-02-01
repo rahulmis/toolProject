@@ -1,6 +1,6 @@
 # 📖 DOCUMENTATION INDEX
 
-**Welcome to your complete online tools website!** This file is your navigation hub to all documentation.
+**Welcome to your complete JsonAndMore website!** This file is your navigation hub to all documentation.
 
 ---
 
@@ -412,6 +412,6 @@ This project includes documentation for:
 
 ---
 
-**Welcome to your online tools website! You have everything you need to succeed.** 🎉
+**Welcome to your JsonAndMore website! You have everything you need to succeed.** 🎉
 
 **Choose your path above and start building!** 🛠️

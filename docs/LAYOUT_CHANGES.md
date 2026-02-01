@@ -312,4 +312,4 @@ The new layout system provides:
    - Scales to 50+ tools effortlessly
    - Lower maintenance costs
 
-**Result:** A professional, scalable online tools platform with a focused workspace identity.
+**Result:** A professional, scalable JsonAndMore platform with a focused workspace identity.

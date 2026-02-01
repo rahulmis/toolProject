@@ -12,7 +12,7 @@
  * any other part of the application.
  */
 
-const STORAGE_KEY = 'online-tools-pinned';
+const STORAGE_KEY = 'json-and-more-pinned';
 
 /**
  * Storage Interface

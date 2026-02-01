@@ -292,7 +292,7 @@ After completing these 3 steps, you should have:
 - [x] **Step 2**: Both tools tested and working
 - [x] **Step 3**: New tool added and visible
 
-**If all checked: You're ready to build your online tools empire!** 🚀
+**If all checked: You're ready to build your JsonAndMore empire!** 🚀
 
 ---
 

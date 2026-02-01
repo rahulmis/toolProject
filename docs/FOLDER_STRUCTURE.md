@@ -1,7 +1,7 @@
 # 📁 Project Folder Structure
 
 **Date:** February 1, 2026  
-**Project:** Online Tools Platform (React + Vite)
+**Project:** JsonAndMore Platform (React + Vite)
 
 ---
 

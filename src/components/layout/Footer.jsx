@@ -18,11 +18,11 @@ const Footer = () => {
             <div className="flex items-center space-x-2 mb-4">
               <span className="text-2xl">🛠️</span>
               <span className="text-xl font-bold text-white">
-                Online<span className="text-primary-400">Tools</span>
+                JsonAnd<span className="text-primary-400">More</span>
               </span>
             </div>
             <p className="text-gray-400 dark:text-gray-500 text-sm">
-              Free, fast, and privacy-focused online tools for developers and creators.
+              Free, fast, and privacy-focused utilities for developers and creators.
               All processing happens in your browser.
             </p>
           </div>
@@ -73,7 +73,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-gray-800 dark:border-gray-900 mt-8 pt-8 text-sm text-center text-gray-400 dark:text-gray-500">
-          © {currentYear} OnlineTools. All rights reserved.
+          © {currentYear} JsonAndMore. All rights reserved.
         </div>
       </div>
     </footer>

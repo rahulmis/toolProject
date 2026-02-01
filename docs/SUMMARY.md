@@ -2,7 +2,7 @@
 
 ## What You Got
 
-A **production-ready, scalable online tools website** built with modern technologies and best practices.
+A **production-ready, scalable JsonAndMore website** built with modern technologies and best practices.
 
 ---
 
@@ -378,7 +378,7 @@ If you need help:
 
 ## 🎉 You're Ready!
 
-You now have a **professional, scalable online tools website** that can grow from 2 tools to 50+ tools without major changes.
+You now have a **professional, scalable JsonAndMore website** that can grow from 2 tools to 50+ tools without major changes.
 
 ### Next Steps:
 1. **Run it**: `npm install && npm run dev`

@@ -24,7 +24,7 @@ export const THEMES = {
 };
 
 // LocalStorage key
-const THEME_STORAGE_KEY = 'online-tools-theme';
+const THEME_STORAGE_KEY = 'json-and-more-theme';
 
 /**
  * Get system theme preference

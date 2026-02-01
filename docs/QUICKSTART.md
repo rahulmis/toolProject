@@ -1,6 +1,6 @@
 # Quick Start Guide
 
-Get your online tools website running in 5 minutes! 🚀
+Get your JsonAndMore website running in 5 minutes! 🚀
 
 ## 📋 Prerequisites
 
@@ -232,7 +232,7 @@ Quick version:
 npm install -g wrangler
 
 # Deploy
-wrangler pages deploy dist --project-name=online-tools
+wrangler pages deploy dist --project-name=json-and-more
 ```
 
 ---

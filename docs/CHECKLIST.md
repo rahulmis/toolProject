@@ -360,7 +360,7 @@ git push
 
 # Deployment (Cloudflare Pages)
 npm run build            # Build first
-wrangler pages deploy dist --project-name=online-tools
+wrangler pages deploy dist --project-name=json-and-more
 ```
 
 ---
@@ -379,4 +379,4 @@ wrangler pages deploy dist --project-name=online-tools
 
 ---
 
-**🎉 Congratulations! Your online tools website is ready to launch!** 🚀
+**🎉 Congratulations! Your JsonAndMore website is ready to launch!** 🚀

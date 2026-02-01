@@ -116,7 +116,7 @@ const metadata = {
      * Page title for SEO (50-60 chars)
      * Format: "[Tool Name] | [Key Benefit] | [Brand]"
      */
-    title: 'Tool Template | Create New Tools | OnlineTools',
+    title: 'Tool Template | Create New Tools | JsonAndMore',
     
     /**
      * Meta description (150-160 chars)

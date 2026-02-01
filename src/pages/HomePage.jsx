@@ -85,7 +85,7 @@ const HomePage = () => {
             
             {/* Headline */}
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight">
-              Free Online Tools for Everyone
+              JsonAndMore — Free Utilities for Everyone
             </h1>
             
             {/* Subheading */}

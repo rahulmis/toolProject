@@ -15,7 +15,7 @@ const AboutPage = () => {
       <section className="bg-gradient-to-r from-primary-600 to-primary-800 dark:from-primary-700 dark:to-primary-900 text-white py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            About OnlineTools
+            About JsonAndMore
           </h1>
           <p className="text-xl text-primary-100 dark:text-primary-200">
             Free, fast, and privacy-focused utilities for everyone
@@ -31,7 +31,7 @@ const AboutPage = () => {
             Our Mission
           </h2>
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-            OnlineTools is a platform dedicated to providing high-quality, free online utilities for developers, 
+            JsonAndMore is a platform dedicated to providing high-quality, free online utilities for developers, 
             creators, and anyone who needs quick access to essential tools. We believe that powerful tools 
             should be accessible to everyone, without hidden costs or compromising privacy.
           </p>
@@ -126,7 +126,7 @@ const AboutPage = () => {
           </h2>
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
             We're constantly expanding our toolkit with new utilities based on user needs and requests. 
-            Our goal is to become your go-to platform for everyday online tools.
+            Our goal is to become your go-to platform for JSON and more.
           </p>
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
             Have a suggestion for a new tool? We'd love to hear from you! Your feedback helps us 
@@ -140,7 +140,7 @@ const AboutPage = () => {
             Built with Modern Technology
           </h2>
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
-            OnlineTools is built using modern web technologies to ensure fast performance, 
+            JsonAndMore is built using modern web technologies to ensure fast performance, 
             security, and reliability:
           </p>
           <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300">
@@ -157,7 +157,7 @@ const AboutPage = () => {
             Ready to Get Started?
           </h2>
           <p className="text-primary-100 dark:text-primary-200 mb-6">
-            Explore our collection of free online tools and start being more productive today.
+            Explore our collection of free tools and start being more productive today.
           </p>
           <Link 
             to="/" 

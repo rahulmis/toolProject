@@ -1,6 +1,6 @@
-# Online Tools - Scalable Web Application
+# JsonAndMore - Scalable Web Application
 
-A modern, extensible online tools website built with React + Vite. Designed for easy scaling from 2 tools to 50+ tools with minimal code changes.
+A modern, extensible utilities website built with React + Vite. Designed for easy scaling from 2 tools to 50+ tools with minimal code changes.
 
 ## 🚀 Features
 

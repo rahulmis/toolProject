@@ -10,7 +10,7 @@
    git add .
    git commit -m "Initial commit"
    git branch -M main
-   git remote add origin https://github.com/yourusername/online-tools.git
+   git remote add origin https://github.com/yourusername/json-and-more.git
    git push -u origin main
    ```
 
@@ -44,7 +44,7 @@ npm install -g wrangler
 wrangler login
 
 # Deploy
-wrangler pages deploy dist --project-name=online-tools
+wrangler pages deploy dist --project-name=json-and-more
 ```
 
 ## 🔧 Build Configuration
@@ -200,10 +200,10 @@ npm run build
 npm run preview
 
 # If using direct upload
-wrangler pages deploy dist --project-name=online-tools
+wrangler pages deploy dist --project-name=json-and-more
 
 # Check deployment status
-wrangler pages deployment list --project-name=online-tools
+wrangler pages deployment list --project-name=json-and-more
 ```
 
 ## 🔗 Useful Links
