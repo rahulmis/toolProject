@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { TOOLS } from '../../features/tools/registry';
 
 /**
  * Footer Component
@@ -71,7 +72,44 @@ const Footer = () => {
             </ul>
           </div>
         </div>
+        {/* ⭐ Popular Tools — Global Internal Links */}
+        <div className="border-t border-gray-800 dark:border-gray-900 mt-12 pt-8">
+          {/* Section Title */}
+          <div className="flex items-center justify-center gap-2 mb-5">
+            <span className="text-lg">⭐</span>
+            <p className="text-sm font-semibold uppercase tracking-wider text-gray-300">
+              Popular Tools
+            </p>
+          </div>
 
+          {/* Tool Links */}
+          <div className="flex flex-wrap justify-center gap-3 text-sm">
+            {TOOLS
+              .filter(tool => tool.featured)
+              .slice(0, 6)
+              .map(tool => (
+                <Link
+                  key={tool.id}
+                  to={`/${tool.slug}`}
+                  title={`${tool.name} – Free Online Tool`}
+                  className="
+                    flex items-center gap-2
+                    px-4 py-1.5 rounded-full
+                    bg-gray-800/70
+                    text-gray-300
+                    hover:bg-primary-500/20
+                    hover:text-primary-300
+                    hover:-translate-y-0.5
+                    hover:shadow-md
+                    transition-all duration-200
+                  "
+                >
+                  {tool.icon && <span className="text-sm">{tool.icon}</span>}
+                  <span>{tool.name}</span>
+                </Link>
+              ))}
+          </div>
+        </div>
         <div className="border-t border-gray-800 dark:border-gray-900 mt-8 pt-8 text-sm text-center text-gray-400 dark:text-gray-500">
           © {currentYear} JsonAndMore. All rights reserved.
         </div>
