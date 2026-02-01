@@ -164,6 +164,38 @@ const JsonFormatter = () => {
           </ul>
         </div>
       </div>
+      {/* 🔍 SEO CONTENT — MUST BE AFTER TOOL UI */}
+      <section className="mt-20 max-w-4xl mx-auto text-gray-700 dark:text-gray-300">
+        <h2 className="text-2xl font-bold mb-4">
+          What is a JSON Formatter & Validator?
+        </h2>
+
+        <p className="mb-4">
+          A JSON formatter is an online tool that helps developers format,
+          beautify, validate, and minify JSON data. It improves readability
+          and detects syntax errors instantly.
+        </p>
+
+        <h3 className="text-xl font-semibold mb-2">
+          Why use this JSON Formatter?
+        </h3>
+
+        <ul className="list-disc pl-6 mb-4">
+          <li>Instant JSON formatting and validation</li>
+          <li>Automatic syntax error detection</li>
+          <li>Runs fully in your browser</li>
+          <li>No data is sent to any server</li>
+        </ul>
+
+        <h3 className="text-xl font-semibold mb-2">
+          Who should use this tool?
+        </h3>
+
+        <p>
+          This tool is ideal for backend developers, frontend engineers,
+          API developers, and anyone working with JSON-based data.
+        </p>
+      </section>
     </ToolLayout>
   );
 };

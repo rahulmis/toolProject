@@ -264,6 +264,38 @@ const ImageConverter = () => {
           </ul>
         </div>
       </div>
+            {/* 🔍 SEO CONTENT — AFTER TOOL UI */}
+      <section className="mt-20 max-w-4xl mx-auto text-gray-700 dark:text-gray-300">
+        <h2 className="text-2xl font-bold mb-4">
+          What is an Image Format Converter?
+        </h2>
+
+        <p className="mb-4">
+          An image format converter is an online tool that allows you to convert
+          images between formats such as PNG, JPG, and WebP. It helps reduce file
+          size, improve compatibility, and optimize images for the web.
+        </p>
+
+        <h3 className="text-xl font-semibold mb-2">
+          Why use this Image Converter?
+        </h3>
+
+        <ul className="list-disc pl-6 mb-4">
+          <li>Convert images instantly in your browser</li>
+          <li>Supports PNG, JPG, and WebP formats</li>
+          <li>Adjust quality to control file size</li>
+          <li>No uploads — your images stay private</li>
+        </ul>
+
+        <h3 className="text-xl font-semibold mb-2">
+          Who should use this tool?
+        </h3>
+
+        <p>
+          This tool is ideal for web developers, designers, content creators,
+          and anyone who needs to optimize images for websites or applications.
+        </p>
+      </section>
     </ToolLayout>
   );
 };

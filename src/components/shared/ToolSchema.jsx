@@ -1,7 +1,8 @@
 import { Helmet } from 'react-helmet-async';
 
 const ToolSchema = ({ tool }) => {
-  const schema = {
+  // 1️⃣ SoftwareApplication schema (always)
+  const softwareSchema = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": tool.name,
@@ -21,11 +22,36 @@ const ToolSchema = ({ tool }) => {
     }
   };
 
+  // 2️⃣ FAQ schema (ONLY if FAQs exist)
+  const faqSchema =
+    tool.faqs && tool.faqs.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": tool.faqs.map((faq) => ({
+            "@type": "Question",
+            "name": faq.question,
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": faq.answer
+            }
+          }))
+        }
+      : null;
+
   return (
     <Helmet>
+      {/* SoftwareApplication schema */}
       <script type="application/ld+json">
-        {JSON.stringify(schema)}
+        {JSON.stringify(softwareSchema)}
       </script>
+
+      {/* FAQ schema */}
+      {faqSchema && (
+        <script type="application/ld+json">
+          {JSON.stringify(faqSchema)}
+        </script>
+      )}
     </Helmet>
   );
 };

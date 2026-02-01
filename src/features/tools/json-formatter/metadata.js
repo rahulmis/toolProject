@@ -35,12 +35,35 @@ const metadata = {
   // SEO metadata
   seo: {
     title: 'Free JSON Formatter & Validator | Online JSON Tool',
-    metaDescription: 'Format, beautify, minify and validate JSON online. Free JSON formatter with syntax highlighting, error detection, and copy to clipboard. All processing happens in your browser.',
+    description: 'Format, beautify, minify and validate JSON online. Free JSON formatter with syntax highlighting, error detection, and copy to clipboard. All processing happens in your browser.',
     keywords: ['json formatter', 'json validator', 'json beautifier', 'json minifier', 'json online', 'format json', 'validate json'],
     ogTitle: 'JSON Formatter & Validator - Free Online Tool',
     ogDescription: 'Format, beautify, and validate JSON online with our free tool. Privacy-focused with in-browser processing.',
     ogImage: '/og-images/json-formatter.png', // Future: add OG images
   },
+
+  faqs: [
+    {
+      question: 'What is a JSON Formatter?',
+      answer:
+        'A JSON formatter is an online tool that formats and beautifies JSON data to make it easier to read, debug, and understand.',
+    },
+    {
+      question: 'Is this JSON Formatter free to use?',
+      answer:
+        'Yes, this JSON formatter is completely free and can be used without any registration or limitations.',
+    },
+    {
+      question: 'Is my JSON data safe?',
+      answer:
+        'Yes. All JSON processing happens directly in your browser. Your data is never uploaded to any server.',
+    },
+    {
+      question: 'Can I validate JSON with this tool?',
+      answer:
+        'Yes, the tool validates JSON syntax and highlights errors instantly.',
+    },
+  ],
   
   // Analytics (future)
   analytics: {

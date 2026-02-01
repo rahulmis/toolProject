@@ -38,6 +38,33 @@ const metadata = {
     ogImage: '/og-images/image-converter.png',
   },
   
+  faqs: [
+    {
+      question: 'What is an Image Format Converter?',
+      answer:
+        'An image format converter is an online tool that allows you to convert images between formats such as PNG, JPG, and WebP directly in your browser.',
+    },
+    {
+      question: 'Is this Image Converter free to use?',
+      answer:
+        'Yes. This image format converter is completely free and does not require registration or uploads.',
+    },
+    {
+      question: 'Are my images uploaded to a server?',
+      answer:
+        'No. All image processing happens locally in your browser. Your images are never uploaded or stored.',
+    },
+    {
+      question: 'Which image formats are supported?',
+      answer:
+        'This tool supports PNG, JPG (JPEG), and WebP formats, including quality control for JPG and WebP.',
+    },
+    {
+      question: 'Can I reduce image file size?',
+      answer:
+        'Yes. You can convert images to JPG or WebP and adjust quality to significantly reduce file size.',
+    },
+  ],
   // Analytics
   analytics: {
     category: 'image-tools',
