@@ -22,6 +22,7 @@ import AboutPage from './pages/AboutPage';
 import { TOOLS } from './features/tools/registry';
 import { PinProvider } from './features/pins/PinContext';
 import { ThemeProvider } from './features/theme/ThemeContext';
+import ToolPage from './pages/ToolPage';
 
 /**
  * Loading fallback component
@@ -65,21 +66,8 @@ function App() {
             {/* About Page Route */}
             <Route path="/about" element={<AboutPage />} />
             
-            {/* 
-              Dynamically generate routes for all tools from registry
-              Each tool's metadata includes its slug and component
-              This eliminates the need for manual route configuration
-            */}
-            {TOOLS.map((tool) => {
-              const ToolComponent = tool.component;
-              return (
-                <Route
-                  key={tool.id}
-                  path={`/${tool.slug}`}
-                  element={<ToolComponent />}
-                />
-              );
-            })}
+            {/* ✅ ALL tools handled here */}
+            <Route path="/:slug" element={<ToolPage />} />
 
             {/* 404 Not Found Route - Must be last */}
             <Route path="*" element={<NotFound />} />

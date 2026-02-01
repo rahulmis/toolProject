@@ -13,6 +13,7 @@
  */
 
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   TOOLS, 
   searchTools, 
@@ -223,6 +224,34 @@ const HomePage = () => {
               </p>
             </div>
           </div>
+        </div>
+      </section>
+      {/* SEO: All Tools Internal Links */}
+      <section className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+            Json & More Tools For Everyone
+          </h2>
+
+          <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-3xl">
+            Explore all available tools on JSON and More. These browser-based utilities help developers
+            format, validate, convert, and analyze JSON and other data formats quickly and securely.
+          </p>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {TOOLS.map((tool) => (
+              <Link
+              key={tool.id}
+              to={`/${tool.slug}`}
+              title={`${tool.name} – Free Online Tool`}
+              className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+            >
+              {tool.name}
+            </Link>
+            ))}
+          </div>
+
         </div>
       </section>
     </div>
