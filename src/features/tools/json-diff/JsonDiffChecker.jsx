@@ -5,9 +5,9 @@
  * Business logic is imported from logic.js for separation of concerns.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import ToolLayout from '../../../components/shared/ToolLayout';
-import { diffJSON, validateJSON, generateSampleJSONs } from './logic';
+import { diffJSON, validateJSON, generateSampleJSONs, exportDiffAsText, searchInDiff } from './logic';
 import metadata from './metadata';
 import './JsonDiffChecker.css';
 
@@ -22,6 +22,18 @@ const JsonDiffChecker = () => {
   const [copySuccess, setCopySuccess] = useState(false);
   const [showMissingProperties, setShowMissingProperties] = useState(true);
   const [showUnequalValues, setShowUnequalValues] = useState(true);
+  
+  // New feature states
+  const [indentSize, setIndentSize] = useState(2);
+  const [ignoreWhitespace, setIgnoreWhitespace] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
+  const [currentChangeIndex, setCurrentChangeIndex] = useState(0);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  
+  const diffContainerRef = useRef(null);
+  const lineRefs = useRef({});
 
   // Diff handler
   const handleDiff = () => {
@@ -38,11 +50,14 @@ const JsonDiffChecker = () => {
       return;
     }
 
-    const result = diffJSON(input1, input2, viewMode);
+    const result = diffJSON(input1, input2, viewMode, { indentSize, ignoreWhitespace });
     if (result.success) {
       setDiffResult(result);
       setError('');
       setDiffStats(result.stats);
+      setCurrentChangeIndex(0);
+      setSearchTerm('');
+      setSearchResults([]);
     } else {
       setError(`Error: ${result.error}`);
       setDiffResult(null);
@@ -57,6 +72,9 @@ const JsonDiffChecker = () => {
     setDiffResult(null);
     setError('');
     setDiffStats(null);
+    setSearchTerm('');
+    setSearchResults([]);
+    setCurrentChangeIndex(0);
   };
 
   // Load sample
@@ -78,20 +96,7 @@ const JsonDiffChecker = () => {
   // Copy diff as text to clipboard
   const handleCopyDiff = useCallback(async () => {
     if (!diffResult) return;
-    const lines = [];
-    if (viewMode === 'unified' && diffResult.unifiedLines) {
-      diffResult.unifiedLines.forEach((l) => lines.push(l.content));
-    } else if (diffResult.leftLines && diffResult.rightLines) {
-      const max = Math.max(diffResult.leftLines.length, diffResult.rightLines.length);
-      for (let i = 0; i < max; i++) {
-        const left = diffResult.leftLines[i];
-        const right = diffResult.rightLines[i];
-        const l = left ? (left.type === 'removed' ? `- ${left.content}` : left.content ? `  ${left.content}` : '') : '';
-        const r = right ? (right.type === 'added' ? `+ ${right.content}` : right.content ? `  ${right.content}` : '') : '';
-        if (l || r) lines.push(`${l || '  '}\t|\t${r || '  '}`);
-      }
-    }
-    const text = lines.join('\n');
+    const text = exportDiffAsText(diffResult, viewMode);
     try {
       await navigator.clipboard.writeText(text);
       setCopySuccess(true);
@@ -101,6 +106,108 @@ const JsonDiffChecker = () => {
     }
   }, [diffResult, viewMode]);
 
+  // Download diff as file
+  const handleDownloadDiff = useCallback(() => {
+    if (!diffResult) return;
+    const text = exportDiffAsText(diffResult, viewMode);
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `json-diff-${Date.now()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [diffResult, viewMode]);
+
+  // Navigate to next change
+  const handleNextChange = useCallback(() => {
+    if (!diffResult?.changeIndices?.length) return;
+    const nextIndex = (currentChangeIndex + 1) % diffResult.changeIndices.length;
+    setCurrentChangeIndex(nextIndex);
+    scrollToLine(diffResult.changeIndices[nextIndex]);
+  }, [diffResult, currentChangeIndex]);
+
+  // Navigate to previous change
+  const handlePrevChange = useCallback(() => {
+    if (!diffResult?.changeIndices?.length) return;
+    const prevIndex = currentChangeIndex === 0 
+      ? diffResult.changeIndices.length - 1 
+      : currentChangeIndex - 1;
+    setCurrentChangeIndex(prevIndex);
+    scrollToLine(diffResult.changeIndices[prevIndex]);
+  }, [diffResult, currentChangeIndex]);
+
+  // Search handler
+  const handleSearch = useCallback((term) => {
+    setSearchTerm(term);
+    if (!term || !diffResult) {
+      setSearchResults([]);
+      return;
+    }
+    const results = searchInDiff(diffResult, term, viewMode);
+    setSearchResults(results);
+    setCurrentSearchIndex(0);
+    if (results.length > 0) {
+      scrollToLine(results[0].index);
+    }
+  }, [diffResult, viewMode]);
+
+  // Navigate search results
+  const handleNextSearchResult = useCallback(() => {
+    if (searchResults.length === 0) return;
+    const nextIndex = (currentSearchIndex + 1) % searchResults.length;
+    setCurrentSearchIndex(nextIndex);
+    scrollToLine(searchResults[nextIndex].index);
+  }, [searchResults, currentSearchIndex]);
+
+  const handlePrevSearchResult = useCallback(() => {
+    if (searchResults.length === 0) return;
+    const prevIndex = currentSearchIndex === 0 
+      ? searchResults.length - 1 
+      : currentSearchIndex - 1;
+    setCurrentSearchIndex(prevIndex);
+    scrollToLine(searchResults[prevIndex].index);
+  }, [searchResults, currentSearchIndex]);
+
+  // Scroll to specific line
+  const scrollToLine = (lineIndex) => {
+    const lineElement = lineRefs.current[lineIndex];
+    if (lineElement && diffContainerRef.current) {
+      lineElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ctrl/Cmd + F for search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f' && diffResult) {
+        e.preventDefault();
+        document.getElementById('search-input')?.focus();
+      }
+      // Ctrl/Cmd + Enter to compare
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && input1 && input2 && !diffResult) {
+        e.preventDefault();
+        handleDiff();
+      }
+      // N for next change
+      if (e.key === 'n' && !e.ctrlKey && !e.metaKey && diffResult) {
+        e.preventDefault();
+        handleNextChange();
+      }
+      // P for previous change
+      if (e.key === 'p' && !e.ctrlKey && !e.metaKey && diffResult) {
+        e.preventDefault();
+        handlePrevChange();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [input1, input2, diffResult, handleDiff, handleNextChange, handlePrevChange]);
+
   const displayContent = (content) =>
     showWhitespace ? content : (content || '').replace(/\s+$/gm, '');
 
@@ -109,6 +216,42 @@ const JsonDiffChecker = () => {
     return lines.map((_, index) => (
       <div key={index} className="line-number">{index + 1}</div>
     ));
+  };
+
+  // Render a single diff line with proper styling
+  const renderDiffLine = (line, showAsHighlighted, highlightType, index) => {
+    const baseClasses = 'diff-line';
+    let typeClass = '';
+    
+    // Check if this line is in search results
+    const isSearchResult = searchResults.some(r => r.index === index);
+    const isCurrentSearchResult = searchResults[currentSearchIndex]?.index === index;
+    
+    if (showAsHighlighted) {
+      if (highlightType === 'added') typeClass = 'diff-line-added';
+      else if (highlightType === 'removed') typeClass = 'diff-line-removed';
+      else if (highlightType === 'modified') typeClass = 'diff-line-modified';
+    } else if (line.type === 'unchanged') {
+      typeClass = 'diff-line-unchanged';
+    } else if (line.type === 'empty') {
+      typeClass = 'diff-line-empty';
+    }
+    
+    // Add search highlighting classes
+    if (isCurrentSearchResult) {
+      typeClass += ' search-highlight-current';
+    } else if (isSearchResult) {
+      typeClass += ' search-highlight';
+    }
+    
+    return (
+      <div 
+        ref={el => lineRefs.current[index] = el}
+        className={`${baseClasses} ${typeClass}`}
+      >
+        {displayContent(line.content)}
+      </div>
+    );
   };
 
   return (
@@ -124,6 +267,7 @@ const JsonDiffChecker = () => {
           <button
             onClick={handleDiff}
             className="px-4 py-2 rounded-lg font-medium bg-primary-600 hover:bg-primary-700 text-white transition-colors dark:bg-primary-500 dark:hover:bg-primary-600"
+            title="Compare JSON (Ctrl+Enter)"
           >
             🔍 Compare JSON
           </button>
@@ -141,6 +285,7 @@ const JsonDiffChecker = () => {
           <button
             onClick={handleSwap}
             className="px-4 py-2 rounded-lg font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+            title="Swap JSONs"
           >
             🔄 Swap
           </button>
@@ -157,23 +302,75 @@ const JsonDiffChecker = () => {
             📄 Sample
           </button>
           {diffResult && (
-            <button
-              onClick={handleCopyDiff}
-              className="px-4 py-2 rounded-lg font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-            >
-              {copySuccess ? '✓ Copied!' : '📋 Copy diff'}
-            </button>
+            <>
+              <button
+                onClick={handleCopyDiff}
+                className="px-4 py-2 rounded-lg font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                title="Copy diff to clipboard"
+              >
+                {copySuccess ? '✓ Copied!' : '📋 Copy'}
+              </button>
+              <button
+                onClick={handleDownloadDiff}
+                className="px-4 py-2 rounded-lg font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                title="Download diff as text file"
+              >
+                💾 Download
+              </button>
+            </>
           )}
-          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showWhitespace}
-              onChange={(e) => setShowWhitespace(e.target.checked)}
-              className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-            />
-            Show whitespace
-          </label>
+          <button
+            onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+            className="px-4 py-2 rounded-lg font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+          >
+            ⚙️ {showAdvancedOptions ? 'Hide' : 'Options'}
+          </button>
         </div>
+
+        {/* Advanced Options */}
+        {showAdvancedOptions && (
+          <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">Advanced Options</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Indentation Size
+                </label>
+                <select
+                  value={indentSize}
+                  onChange={(e) => setIndentSize(Number(e.target.value))}
+                  className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value={2}>2 spaces</option>
+                  <option value={4}>4 spaces</option>
+                  <option value={0}>Compact</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showWhitespace}
+                    onChange={(e) => setShowWhitespace(e.target.checked)}
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  Show whitespace
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={ignoreWhitespace}
+                    onChange={(e) => setIgnoreWhitespace(e.target.checked)}
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  Ignore whitespace differences
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Error Message */}
         {error && (
@@ -209,19 +406,19 @@ const JsonDiffChecker = () => {
             </div>
             <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-600 dark:text-gray-400">
               <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-sm bg-green-200 dark:bg-green-600" aria-hidden />
+                <span className="w-3 h-3 rounded-sm bg-green-200 dark:bg-green-600/50" aria-hidden />
                 Added
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-sm bg-red-200 dark:bg-red-600" aria-hidden />
-                Missing
+                <span className="w-3 h-3 rounded-sm bg-red-200 dark:bg-red-600/50" aria-hidden />
+                Removed
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-sm bg-gray-300 dark:bg-gray-500" aria-hidden />
-                Unequal values
+                <span className="w-3 h-3 rounded-sm bg-amber-200 dark:bg-amber-600/50" aria-hidden />
+                Modified
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-sm bg-sky-200 dark:bg-sky-600" aria-hidden />
+                <span className="w-3 h-3 rounded-sm bg-gray-200 dark:bg-gray-500" aria-hidden />
                 Unchanged
               </span>
             </div>
@@ -235,17 +432,18 @@ const JsonDiffChecker = () => {
               <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-2 border-b border-gray-200 dark:border-gray-600">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Original JSON</label>
               </div>
-              <div className="relative">
-                <div className="absolute left-0 top-0 bottom-0 w-14 min-w-[3.5rem] bg-gray-50 dark:bg-gray-700/50 border-r border-gray-200 dark:border-gray-600 overflow-hidden shrink-0">
+              <div className="relative flex">
+                <div className="w-16 flex-shrink-0 bg-gray-50 dark:bg-gray-700/50 border-r border-gray-200 dark:border-gray-600 overflow-hidden">
                   <div className="line-numbers">{renderLineNumbers(input1)}</div>
                 </div>
                 <textarea
                   value={input1}
                   onChange={(e) => setInput1(e.target.value)}
                   placeholder="Paste first JSON here..."
-                  className="textarea-field pl-16 font-mono text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-0 focus:ring-2 focus:ring-primary-500"
+                  className="textarea-field flex-1 px-4 py-2 font-mono text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-0 focus:ring-2 focus:ring-primary-500 focus:outline-none"
                   rows={16}
                   aria-label="Original JSON"
+                  style={{ lineHeight: '1.75rem' }}
                 />
               </div>
               <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-2 border-t border-gray-200 dark:border-gray-600 text-sm text-gray-500 dark:text-gray-400">
@@ -256,17 +454,18 @@ const JsonDiffChecker = () => {
               <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-2 border-b border-gray-200 dark:border-gray-600">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Modified JSON</label>
               </div>
-              <div className="relative">
-                <div className="absolute left-0 top-0 bottom-0 w-14 min-w-[3.5rem] bg-gray-50 dark:bg-gray-700/50 border-r border-gray-200 dark:border-gray-600 overflow-hidden shrink-0">
+              <div className="relative flex">
+                <div className="w-16 flex-shrink-0 bg-gray-50 dark:bg-gray-700/50 border-r border-gray-200 dark:border-gray-600 overflow-hidden">
                   <div className="line-numbers">{renderLineNumbers(input2)}</div>
                 </div>
                 <textarea
                   value={input2}
                   onChange={(e) => setInput2(e.target.value)}
                   placeholder="Paste second JSON here..."
-                  className="textarea-field pl-16 font-mono text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-0 focus:ring-2 focus:ring-primary-500"
+                  className="textarea-field flex-1 px-4 py-2 font-mono text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-0 focus:ring-2 focus:ring-primary-500 focus:outline-none"
                   rows={16}
                   aria-label="Modified JSON"
+                  style={{ lineHeight: '1.75rem' }}
                 />
               </div>
               <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-2 border-t border-gray-200 dark:border-gray-600 text-sm text-gray-500 dark:text-gray-400">
@@ -279,8 +478,65 @@ const JsonDiffChecker = () => {
             <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-3 border-b border-gray-200 dark:border-gray-600 flex flex-wrap justify-between items-center gap-3">
               <div className="flex flex-wrap items-center gap-4">
                 <span className="font-medium text-gray-700 dark:text-gray-300">Comparison Result</span>
+                
+                {/* Search Bar */}
+                <div className="flex items-center gap-2">
+                  <input
+                    id="search-input"
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    placeholder="Search in diff... (Ctrl+F)"
+                    className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 w-48"
+                  />
+                  {searchResults.length > 0 && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">
+                        {currentSearchIndex + 1}/{searchResults.length}
+                      </span>
+                      <button
+                        onClick={handlePrevSearchResult}
+                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                        title="Previous result"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        onClick={handleNextSearchResult}
+                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                        title="Next result"
+                      >
+                        ↓
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Change Navigation */}
+                {diffResult?.changeIndices?.length > 0 && (
+                  <div className="flex items-center gap-2 border-l border-gray-300 dark:border-gray-600 pl-4">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                      Change {currentChangeIndex + 1}/{diffResult.changeIndices.length}
+                    </span>
+                    <button
+                      onClick={handlePrevChange}
+                      className="px-2 py-1 text-xs rounded bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500"
+                      title="Previous change (P)"
+                    >
+                      ← Prev
+                    </button>
+                    <button
+                      onClick={handleNextChange}
+                      className="px-2 py-1 text-xs rounded bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500"
+                      title="Next change (N)"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
+
                 {diffStats && (diffStats.removed > 0 || diffStats.modified > 0) && (
-                  <div className="flex flex-wrap items-center gap-4 text-sm">
+                  <div className="flex flex-wrap items-center gap-4 text-sm border-l border-gray-300 dark:border-gray-600 pl-4">
                     {diffStats.removed > 0 && (
                       <label className="flex items-center gap-2 cursor-pointer text-gray-600 dark:text-gray-400">
                         <input
@@ -289,7 +545,7 @@ const JsonDiffChecker = () => {
                           onChange={(e) => setShowMissingProperties(e.target.checked)}
                           className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                         />
-                        <span>{diffStats.removed} missing {diffStats.removed === 1 ? 'property' : 'properties'}</span>
+                        <span>{diffStats.removed} missing</span>
                       </label>
                     )}
                     {diffStats.modified > 0 && (
@@ -300,97 +556,132 @@ const JsonDiffChecker = () => {
                           onChange={(e) => setShowUnequalValues(e.target.checked)}
                           className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                         />
-                        <span>{diffStats.modified} unequal {diffStats.modified === 1 ? 'value' : 'values'}</span>
+                        <span>{diffStats.modified} modified</span>
                       </label>
                     )}
                   </div>
                 )}
               </div>
               <button
-                onClick={() => { setDiffResult(null); setError(''); }}
+                onClick={() => { setDiffResult(null); setError(''); setSearchTerm(''); setSearchResults([]); }}
                 className="text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline"
               >
                 ← Back to Edit
               </button>
             </div>
-            <div className="diff-container max-h-[70vh] overflow-auto">
+            <div ref={diffContainerRef} className="diff-container max-h-[70vh] overflow-auto">
               {viewMode === 'side-by-side' ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 divide-x divide-gray-200 dark:divide-gray-600">
-                  <div className="relative min-w-0">
-                    <div className="absolute left-0 top-0 bottom-0 w-14 min-w-[3.5rem] bg-gray-50 dark:bg-gray-700/50 border-r border-gray-200 dark:border-gray-600 shrink-0">
+                <div className="grid grid-cols-1 lg:grid-cols-2">
+                  {/* Left Panel - Original JSON */}
+                  <div className="flex border-r border-gray-200 dark:border-gray-700">
+                    <div className="w-20 flex-shrink-0 bg-gray-100 dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 overflow-hidden">
+                      <div className="diff-panel-header text-center text-xs">Line</div>
                       <div className="line-numbers">
                         {diffResult.leftLines?.map((line, index) => (
-                          <div key={index} className={`line-number ${line.type === 'removed' ? 'diff-num-removed' : line.type === 'modified' ? 'diff-num-modified' : ''}`}>
-                            {line.lineNumber ?? '−'}
+                          <div 
+                            key={index} 
+                            className={`line-number ${
+                              line.type === 'removed' ? 'diff-num-removed' : 
+                              line.type === 'modified' ? 'diff-num-modified' : 
+                              ''
+                            }`}
+                          >
+                            {line.lineNumber ?? ''}
                           </div>
                         ))}
                       </div>
                     </div>
-                    <div className="ml-16">
-                      {diffResult.leftLines?.map((line, index) => {
-                        const showAsRemoved = line.type === 'removed' && showMissingProperties;
-                        const showAsModified = line.type === 'modified' && showUnequalValues;
-                        const isContext = line.type === 'unchanged' || line.type === 'empty' || (!showAsRemoved && line.type === 'removed') || (!showAsModified && line.type === 'modified');
-                        const bg = showAsRemoved ? 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200' : showAsModified ? 'bg-gray-100 dark:bg-gray-600/40 text-gray-800 dark:text-gray-200' : isContext && line.type === 'unchanged' ? 'bg-sky-50/80 dark:bg-sky-900/20 text-gray-800 dark:text-gray-200' : 'text-gray-800 dark:text-gray-200';
-                        return (
-                          <div key={index} className={`px-2 py-0.5 font-mono text-sm min-h-[1.25rem] ${bg}`}>
-                            <span className="whitespace-pre">{displayContent(line.content)}</span>
-                          </div>
-                        );
-                      })}
+                    <div className="flex-1 min-w-0 overflow-x-auto">
+                      <div className="diff-panel-header">Original JSON</div>
+                      <div>
+                        {diffResult.leftLines?.map((line, index) => {
+                          const showAsRemoved = line.type === 'removed' && showMissingProperties;
+                          const showAsModified = line.type === 'modified' && showUnequalValues;
+                          return (
+                            <div key={index}>
+                              {renderDiffLine(
+                                line,
+                                showAsRemoved || showAsModified,
+                                showAsRemoved ? 'removed' : 'modified',
+                                index
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-                  <div className="relative min-w-0">
-                    <div className="absolute left-0 top-0 bottom-0 w-14 min-w-[3.5rem] bg-gray-50 dark:bg-gray-700/50 border-r border-gray-200 dark:border-gray-600 shrink-0">
+                  
+                  {/* Right Panel - Modified JSON */}
+                  <div className="flex">
+                    <div className="w-20 flex-shrink-0 bg-gray-100 dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 overflow-hidden">
+                      <div className="diff-panel-header text-center text-xs">Line</div>
                       <div className="line-numbers">
                         {diffResult.rightLines?.map((line, index) => (
-                          <div key={index} className={`line-number ${line.type === 'added' ? 'diff-num-added' : line.type === 'modified' ? 'diff-num-modified' : ''}`}>
-                            {line.lineNumber ?? '−'}
+                          <div 
+                            key={index} 
+                            className={`line-number ${
+                              line.type === 'added' ? 'diff-num-added' : 
+                              line.type === 'modified' ? 'diff-num-modified' : 
+                              ''
+                            }`}
+                          >
+                            {line.lineNumber ?? ''}
                           </div>
                         ))}
                       </div>
                     </div>
-                    <div className="ml-16">
-                      {diffResult.rightLines?.map((line, index) => {
-                        const showAsAdded = line.type === 'added' && showMissingProperties;
-                        const showAsModified = line.type === 'modified' && showUnequalValues;
-                        const isContext = line.type === 'unchanged' || line.type === 'empty' || (!showAsAdded && line.type === 'added') || (!showAsModified && line.type === 'modified');
-                        const bg = showAsAdded ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200' : showAsModified ? 'bg-gray-100 dark:bg-gray-600/40 text-gray-800 dark:text-gray-200' : isContext && line.type === 'unchanged' ? 'bg-sky-50/80 dark:bg-sky-900/20 text-gray-800 dark:text-gray-200' : 'text-gray-800 dark:text-gray-200';
-                        return (
-                          <div key={index} className={`px-2 py-0.5 font-mono text-sm min-h-[1.25rem] ${bg}`}>
-                            <span className="whitespace-pre">{displayContent(line.content)}</span>
-                          </div>
-                        );
-                      })}
+                    <div className="flex-1 min-w-0 overflow-x-auto">
+                      <div className="diff-panel-header">Modified JSON</div>
+                      <div>
+                        {diffResult.rightLines?.map((line, index) => {
+                          const showAsAdded = line.type === 'added' && showMissingProperties;
+                          const showAsModified = line.type === 'modified' && showUnequalValues;
+                          return (
+                            <div key={index}>
+                              {renderDiffLine(
+                                line,
+                                showAsAdded || showAsModified,
+                                showAsAdded ? 'added' : 'modified',
+                                index
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="relative">
-                  <div className="absolute left-0 top-0 bottom-0 w-14 min-w-[3.5rem] bg-gray-50 dark:bg-gray-700/50 border-r border-gray-200 dark:border-gray-600 shrink-0">
+                <div className="flex">
+                  <div className="w-20 flex-shrink-0 bg-gray-100 dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 overflow-hidden">
+                    <div className="diff-panel-header text-center text-xs">Line</div>
                     <div className="line-numbers">
                       {diffResult.unifiedLines?.map((line, index) => (
-                        <div key={index} className="line-number">{line.lineNumber ?? '−'}</div>
+                        <div key={index} className={`line-number ${
+                          line.type === 'added' ? 'diff-num-added' : 
+                          line.type === 'removed' ? 'diff-num-removed' : 
+                          ''
+                        }`}>
+                          {line.lineNumber ?? ''}
+                        </div>
                       ))}
                     </div>
                   </div>
-                  <div className="ml-16">
-                    {diffResult.unifiedLines?.map((line, index) => (
-                      <div
-                        key={index}
-                        className={`px-2 py-0.5 font-mono text-sm min-h-[1.25rem] ${
-                          line.type === 'added'
-                            ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200'
-                            : line.type === 'removed'
-                            ? 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200'
-                            : line.type === 'unchanged'
-                            ? 'bg-sky-50/80 dark:bg-sky-900/20 text-gray-800 dark:text-gray-200'
-                            : 'text-gray-800 dark:text-gray-200'
-                        }`}
-                      >
-                        <span className="whitespace-pre">{displayContent(line.content)}</span>
-                      </div>
-                    ))}
+                  <div className="flex-1 min-w-0 overflow-x-auto">
+                    <div className="diff-panel-header">Unified Diff View</div>
+                    <div>
+                      {diffResult.unifiedLines?.map((line, index) => (
+                        <div key={index}>
+                          {renderDiffLine(
+                            line,
+                            line.type !== 'unchanged' && line.type !== 'empty',
+                            line.type,
+                            index
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
@@ -400,12 +691,14 @@ const JsonDiffChecker = () => {
 
         {/* Tips Section */}
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
-          <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">💡 How to Use</h3>
+          <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">💡 Features & Tips</h3>
           <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1.5">
-            <li><strong>Side-by-Side:</strong> Original (left) vs modified (right) with inline color coding</li>
-            <li><span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 mr-1">Green</span> added · <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 mr-1">Red</span> missing · <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 mr-1">Grey</span> unequal values · <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-sky-100 dark:bg-sky-900/40 text-sky-800 dark:text-sky-200">Blue</span> unchanged</li>
-            <li>Use the checkboxes above the result to show/hide <strong>missing properties</strong> and <strong>unequal values</strong></li>
-            <li>All processing is local — 100% private</li>
+            <li><strong>🔍 Search:</strong> Press <kbd className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-800 rounded">Ctrl+F</kbd> to search within the diff results</li>
+            <li><strong>⌨️ Navigation:</strong> Use <kbd className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-800 rounded">N</kbd> (next) and <kbd className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-800 rounded">P</kbd> (previous) to jump between changes</li>
+            <li><strong>📊 Format options:</strong> Choose between 2-space, 4-space, or compact indentation</li>
+            <li><strong>💾 Export:</strong> Download diff results or copy to clipboard for documentation</li>
+            <li><strong>🎨 Color coding:</strong> <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 mx-1">Green</span> = added, <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 mx-1">Red</span> = removed, <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 mx-1">Yellow</span> = modified</li>
+            <li><strong>🔒 Privacy:</strong> All processing happens locally in your browser - your data never leaves your device</li>
           </ul>
         </div>
       </div>
@@ -418,9 +711,9 @@ const JsonDiffChecker = () => {
 
         <p className="mb-4">
           Our JSON Diff Checker is a professional-grade tool that visually compares two JSON documents 
-          and highlights differences with precision. With line-numbered side-by-side views, color-coded 
-          highlighting, and detailed change statistics, it provides the most comprehensive JSON comparison 
-          experience available online.
+          and highlights differences with precision. With perfectly aligned line numbers in side-by-side views, 
+          improved color-coded highlighting, and detailed change statistics, it provides the most comprehensive 
+          and user-friendly JSON comparison experience available online.
         </p>
 
         <h3 className="text-xl font-semibold mb-2">
@@ -428,12 +721,14 @@ const JsonDiffChecker = () => {
         </h3>
 
         <ul className="list-disc pl-6 mb-4">
-          <li><strong>Line-numbered comparison</strong> for precise difference identification</li>
-          <li><strong>Side-by-side and unified views</strong> to suit your workflow</li>
+          <li><strong>Perfectly aligned line numbers</strong> for precise difference identification in both panels</li>
+          <li><strong>Side-by-side and unified views</strong> with consistent formatting to suit your workflow</li>
           <li><strong>Real-time character and line counting</strong> for both inputs</li>
-          <li><strong>Visual color coding</strong> (green = added, red = removed, yellow = modified)</li>
+          <li><strong>Improved visual color coding</strong> (green = added, red = removed, yellow = modified)</li>
+          <li><strong>Fixed line height alignment</strong> ensures diff lines match perfectly across panels</li>
           <li><strong>Detailed change statistics</strong> including added, removed, and modified counts</li>
-          <li><strong>Built-in JSON validation</strong> with error highlighting</li>
+          <li><strong>Built-in JSON validation</strong> with error highlighting and line-specific error messages</li>
+          <li><strong>Sticky headers and line numbers</strong> for easy navigation in large diffs</li>
           <li><strong>Zero data transmission</strong> - all processing happens locally</li>
         </ul>
 

@@ -35,36 +35,50 @@ export const validateJSON = (jsonString) => {
  * @param {string} jsonString1 - First JSON string
  * @param {string} jsonString2 - Second JSON string
  * @param {string} viewMode - 'side-by-side' or 'unified'
- * @returns {Object} { success: boolean, leftLines?: Array, rightLines?: Array, unifiedLines?: Array, stats?: Object, error?: string }
+ * @param {Object} options - Comparison options { indentSize: number, ignoreWhitespace: boolean }
+ * @returns {Object} { success: boolean, leftLines?: Array, rightLines?: Array, unifiedLines?: Array, stats?: Object, changeIndices?: Array, error?: string }
  */
-export const diffJSON = (jsonString1, jsonString2, viewMode = 'side-by-side') => {
+export const diffJSON = (jsonString1, jsonString2, viewMode = 'side-by-side', options = {}) => {
   try {
+    const { indentSize = 2, ignoreWhitespace = false } = options;
+    
     const obj1 = JSON.parse(jsonString1);
     const obj2 = JSON.parse(jsonString2);
     
     // Format both JSONs with consistent indentation
-    const formatted1 = JSON.stringify(obj1, null, 2);
-    const formatted2 = JSON.stringify(obj2, null, 2);
+    const formatted1 = JSON.stringify(obj1, null, indentSize);
+    const formatted2 = JSON.stringify(obj2, null, indentSize);
     
     // Split into lines
     const lines1 = formatted1.split('\n');
     const lines2 = formatted2.split('\n');
     
     // Perform line-by-line comparison
-    const { leftLines, rightLines } = compareLinesSideBySide(lines1, lines2);
-    const unifiedLines = compareLinesUnified(lines1, lines2);
+    const { leftLines, rightLines } = compareLinesSideBySide(lines1, lines2, ignoreWhitespace);
+    const unifiedLines = compareLinesUnified(lines1, lines2, ignoreWhitespace);
     
     // Find detailed differences for statistics
     const differences = findDetailedDifferences(obj1, obj2);
     const stats = countDifferences(differences);
     stats.unchanged = leftLines.filter((l) => l.type === 'unchanged').length;
     
+    // Track indices of changes for navigation
+    const changeIndices = [];
+    leftLines.forEach((line, index) => {
+      if (line.type === 'added' || line.type === 'removed' || line.type === 'modified') {
+        changeIndices.push(index);
+      }
+    });
+    
     return {
       success: true,
       leftLines,
       rightLines,
       unifiedLines,
-      stats
+      stats,
+      changeIndices,
+      formatted1,
+      formatted2
     };
   } catch (err) {
     return { success: false, error: err.message };
@@ -122,7 +136,7 @@ const getJsonKeyFromLine = (line) => {
  * Compare two sets of lines for side-by-side view using LCS alignment.
  * Post-process: when removed (left) + added (right) share the same JSON key, mark as 'modified'.
  */
-const compareLinesSideBySide = (lines1, lines2) => {
+const compareLinesSideBySide = (lines1, lines2, ignoreWhitespace = false) => {
   const leftLines = [];
   const rightLines = [];
   const lcs = computeLCS(lines1, lines2);
@@ -199,7 +213,7 @@ const compareLinesSideBySide = (lines1, lines2) => {
 /**
  * Compare lines for unified view using same LCS alignment
  */
-const compareLinesUnified = (lines1, lines2) => {
+const compareLinesUnified = (lines1, lines2, ignoreWhitespace = false) => {
   const unifiedLines = [];
   const lcs = computeLCS(lines1, lines2);
   let idx1 = 0,
@@ -441,4 +455,81 @@ export const getDiffStats = (jsonString1, jsonString2) => {
   } catch (err) {
     return { error: err.message };
   }
+};
+
+/**
+ * Export diff as formatted text
+ */
+export const exportDiffAsText = (diffResult, viewMode) => {
+  const lines = [];
+  lines.push('JSON DIFF COMPARISON REPORT');
+  lines.push('=' .repeat(60));
+  lines.push('');
+  
+  if (diffResult.stats) {
+    lines.push('STATISTICS:');
+    lines.push(`  Total Changes: ${diffResult.stats.totalChanges}`);
+    lines.push(`  Added: ${diffResult.stats.added}`);
+    lines.push(`  Removed: ${diffResult.stats.removed}`);
+    lines.push(`  Modified: ${diffResult.stats.modified}`);
+    lines.push(`  Unchanged: ${diffResult.stats.unchanged}`);
+    lines.push('');
+    lines.push('-'.repeat(60));
+    lines.push('');
+  }
+  
+  if (viewMode === 'unified' && diffResult.unifiedLines) {
+    lines.push('UNIFIED DIFF:');
+    lines.push('');
+    diffResult.unifiedLines.forEach((line) => {
+      const prefix = line.type === 'added' ? '+ ' : line.type === 'removed' ? '- ' : '  ';
+      lines.push(`${prefix}${line.content}`);
+    });
+  } else if (diffResult.leftLines && diffResult.rightLines) {
+    lines.push('SIDE-BY-SIDE DIFF:');
+    lines.push('');
+    lines.push('ORIGINAL (LEFT)                    | MODIFIED (RIGHT)');
+    lines.push('-'.repeat(60));
+    const maxLen = Math.max(diffResult.leftLines.length, diffResult.rightLines.length);
+    for (let i = 0; i < maxLen; i++) {
+      const left = diffResult.leftLines[i];
+      const right = diffResult.rightLines[i];
+      const leftContent = left ? left.content : '';
+      const rightContent = right ? right.content : '';
+      lines.push(`${leftContent.padEnd(30)} | ${rightContent}`);
+    }
+  }
+  
+  return lines.join('\n');
+};
+
+/**
+ * Search within diff lines
+ */
+export const searchInDiff = (diffResult, searchTerm, viewMode) => {
+  if (!searchTerm) return [];
+  
+  const results = [];
+  const term = searchTerm.toLowerCase();
+  
+  if (viewMode === 'unified' && diffResult.unifiedLines) {
+    diffResult.unifiedLines.forEach((line, index) => {
+      if (line.content.toLowerCase().includes(term)) {
+        results.push({ index, line: line.content, type: line.type });
+      }
+    });
+  } else if (diffResult.leftLines && diffResult.rightLines) {
+    diffResult.leftLines.forEach((line, index) => {
+      if (line.content.toLowerCase().includes(term)) {
+        results.push({ index, line: line.content, type: line.type, side: 'left' });
+      }
+    });
+    diffResult.rightLines.forEach((line, index) => {
+      if (line.content.toLowerCase().includes(term)) {
+        results.push({ index, line: line.content, type: line.type, side: 'right' });
+      }
+    });
+  }
+  
+  return results;
 };

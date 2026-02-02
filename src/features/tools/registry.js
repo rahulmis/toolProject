@@ -24,6 +24,17 @@
 import jsonFormatterMeta from './json-formatter/metadata';
 import imageConverterMeta from './image-converter/metadata';
 import jsonDiffMeta from './json-diff/metadata';
+import base64Meta from './base64/metadata';
+import timestampMeta from './timestamp/metadata';
+import urlEncoderMeta from './url-encoder/metadata';
+import jwtDecoderMeta from './jwt-decoder/metadata';
+import textCaseConverterMeta from './text-case-converter/metadata';
+import wordCounterMeta from './word-counter/metadata';
+import textCleanerMeta from './text-cleaner/metadata';
+import passwordGeneratorMeta from './password-generator/metadata';
+import percentageCalculatorMeta from './percentage-calculator/metadata';
+import dateCalculatorMeta from './date-calculator/metadata';
+import unitConverterMeta from './unit-converter/metadata';
 /**
  * Tool Categories
  * Organize tools into logical groups for better UX
@@ -36,6 +47,7 @@ export const TOOL_CATEGORIES = {
   CONVERTER: 'Converters',
   CRYPTO: 'Crypto & Security',
   DATA: 'Data Tools',
+  UTILITY: 'Utility Tools',
 };
 
 /**
@@ -61,6 +73,17 @@ export const TOOLS = [
   jsonFormatterMeta,
   imageConverterMeta,
   jsonDiffMeta,
+  base64Meta,
+  timestampMeta,
+  urlEncoderMeta,
+  jwtDecoderMeta,
+  textCaseConverterMeta,
+  wordCounterMeta,
+  textCleanerMeta,
+  passwordGeneratorMeta,
+  percentageCalculatorMeta,
+  dateCalculatorMeta,
+  unitConverterMeta,
   
   // Future tools: Just import and add to array
   // import pdfMergerMeta from './pdf-merger/metadata';
